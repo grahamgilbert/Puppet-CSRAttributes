@@ -1,0 +1,30 @@
+#!/usr/bin/python
+import subprocess
+import re
+import argparse
+import os
+import shutil
+def get_target():
+    o = argparse.ArgumentParser()
+    o.add_argument('script_path')
+    o.add_argument('package_path')
+    o.add_argument('default_location')
+    o.add_argument('target_volume')
+    args = o.parse_args()
+    return args.target_volume
+
+cmd = ['/usr/bin/facter', 'sp_serial_number']
+task = subprocess.Popen(cmd, stdout=subprocess.PIPE)
+serial = task.communicate()[0]
+serial = re.sub('[^A-Za-z0-9]+', '', serial)
+
+target_volume = get_target()
+csr = os.path.join(target_volume, 'private','etc', 'puppet', 'csr_attributes.yaml')
+csr_out = os.path.join(target_volume, 'private','etc', 'puppet', 'csr_attributes.yaml.out')
+with open(csr_out, "wt") as fout:
+    with open(csr, "rt") as fin:
+        for line in fin:
+            fout.write(line.replace('mySerialNumber', serial))
+
+os.remove(csr)
+shutil.move(csr_out, csr)
